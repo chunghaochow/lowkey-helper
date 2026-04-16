@@ -24,6 +24,11 @@
   }
 
   async function getRuleEnabled(rule) {
+    // 不展示在 UI 的规则只受配置文件控制，避免历史 storage 值影响它。
+    if (rule.showInPopup === false) {
+      return rule.defaultEnabled !== false;
+    }
+
     const storageKey = config.getStorageKey(site.id, rule.id);
     const storedValue = await chrome.storage.sync.get(storageKey);
 
@@ -35,8 +40,8 @@
   }
 
   function ensureRuleStyle(rule) {
-    const selector = config.buildRuleSelector(rule);
-    if (!selector) {
+    const ruleStyle = config.buildRuleStyle(rule);
+    if (!ruleStyle) {
       return null;
     }
 
@@ -45,7 +50,7 @@
       styleElement = document.createElement("style");
       styleElement.dataset.lowkeyRuleId = rule.id;
       // 通过注入 style 来隐藏元素，避免直接改动页面节点结构。
-      styleElement.textContent = `${selector} { display: none !important; }`;
+      styleElement.textContent = ruleStyle;
       appliedStyles.set(rule.id, styleElement);
     }
 
@@ -65,6 +70,16 @@
 
   async function applyRule(rule) {
     // 子开关决定“这一项是否允许生效”，总站点开关决定“当前网站是否整体暂停”。
+    if (rule.showInPopup === false) {
+      const enabled = await getRuleEnabled(rule);
+      if (enabled) {
+        ensureRuleStyle(rule);
+      } else {
+        disableRuleStyle(rule.id);
+      }
+      return;
+    }
+
     const [siteEnabled, ruleEnabled] = await Promise.all([getSiteEnabled(), getRuleEnabled(rule)]);
     const enabled = siteEnabled && ruleEnabled;
 

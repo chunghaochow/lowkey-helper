@@ -89,6 +89,29 @@
           defaultEnabled: true
         }
       ]
+    },
+    {
+      id: "x",
+      label: "X",
+      hosts: ["x.com", "www.x.com"],
+      rules: [
+        {
+          id: "left-nav",
+          label: "隐藏左侧导航栏",
+          selector: 'header[role="banner"]',
+          hideMode: "opacity",
+          // showInPopup: false,
+          defaultEnabled: true
+        },
+        {
+          id: "right-sidebar",
+          label: "隐藏右侧边栏",
+          selector: 'div[data-testid="sidebarColumn"]',
+          hideMode: "opacity",
+          // showInPopup: false,
+          defaultEnabled: true
+        }
+      ]
     }
   ];
 
@@ -123,6 +146,19 @@
     return normalizeClassSelector(rule.className);
   }
 
+  function buildRuleStyle(rule) {
+    const selector = buildRuleSelector(rule);
+    if (!selector) {
+      return "";
+    }
+
+    if (rule.hideMode === "opacity") {
+      return `${selector} { opacity: 0 !important; cursor: none !important; pointer-events: none !important; }`;
+    }
+
+    return `${selector} { display: none !important; }`;
+  }
+
   function getStorageKey(siteId, ruleId) {
     return `site-rule:${siteId}:${ruleId}`;
   }
@@ -134,6 +170,7 @@
 
   globalScope.LowkeySiteConfig = {
     SITE_RULES,
+    buildRuleStyle,
     buildRuleSelector,
     getSiteEnabledKey,
     getStorageKey,

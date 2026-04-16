@@ -92,10 +92,14 @@
     unsupportedView.hidden = true;
     siteToggleElement.innerHTML = "";
     ruleListElement.innerHTML = "";
+    const visibleRules = site.rules.filter((rule) => rule.showInPopup !== false);
+    if (visibleRules.length === 0) {
+      return;
+    }
 
     const [siteEnabled, states] = await Promise.all([
       getSiteEnabled(site.id),
-      Promise.all(site.rules.map((rule) => getStoredState(site.id, rule)))
+      Promise.all(visibleRules.map((rule) => getStoredState(site.id, rule)))
     ]);
 
     // 总开关不覆盖子开关存储值，只控制当前网站规则是否整体生效。
@@ -115,7 +119,7 @@
 
     siteToggleElement.appendChild(masterRow);
 
-    site.rules.forEach((rule, index) => {
+    visibleRules.forEach((rule, index) => {
       const { row } = createRuleRow({
         titleText: rule.label,
         metaText: rule.className ? `className: ${rule.className}` : rule.selector,
