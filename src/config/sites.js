@@ -54,7 +54,7 @@
           id: "sidebar",
           label: "隐藏右侧边栏",
           selector:
-            'div[data-za-detail-view-path-module="RightSideBar"], .HotSearchCard, footer[role="contentinfo"]',
+            'div[data-za-detail-view-path-module="RightSideBar"], .HotSearchCard, .Post-Row-Content-right, footer[role="contentinfo"]',
           defaultEnabled: true
         }
       ]
