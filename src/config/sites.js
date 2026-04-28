@@ -56,6 +56,12 @@
           selector:
             'div[data-za-detail-view-path-module="RightSideBar"], .HotSearchCard, .Post-Row-Content-right, footer[role="contentinfo"]',
           defaultEnabled: true
+        },
+        {
+          id: "no-image-mode",
+          label: "无图模式",
+          selector: "img",
+          defaultEnabled: true
         }
       ]
     },
