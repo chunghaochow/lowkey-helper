@@ -66,6 +66,37 @@
       ]
     },
     {
+      id: "juejin",
+      label: "掘金",
+      hosts: ["www.juejin.cn", "juejin.cn"],
+      rules: [
+        {
+          id: "header",
+          label: "隐藏顶部导航栏",
+          selector: "header",
+          defaultEnabled: true
+        },
+        {
+          id: "sidebar",
+          label: "隐藏右侧边栏",
+          selector: "#sidebar-container",
+          defaultEnabled: true
+        },
+        {
+          id: "left-sidebar",
+          label: "隐藏左侧边栏",
+          className: "article-suspended-panel",
+          defaultEnabled: true
+        },
+        {
+          id: "no-image-mode",
+          label: "无图模式",
+          selector: "img",
+          defaultEnabled: false
+        }
+      ]
+    },
+    {
       id: "xueqiu",
       label: "雪球",
       hosts: ["xueqiu.com", "www.xueqiu.com"],
@@ -92,6 +123,12 @@
           id: "stock-sidebar",
           label: "隐藏个股侧栏",
           selector: ".stock-links, .stock__side",
+          defaultEnabled: true
+        },
+        {
+          id: "no-image-mode",
+          label: "无图模式",
+          selector: "img",
           defaultEnabled: true
         }
       ]
