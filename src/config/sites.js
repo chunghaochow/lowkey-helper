@@ -126,6 +126,24 @@
           defaultEnabled: true
         },
         {
+          id: "stock-index",
+          label: "隐藏大盘区",
+          className: "home__stock-index",
+          defaultEnabled: true
+        },
+        {
+          id: "optional",
+          label: "隐藏自选区",
+          selector: "#optional",
+          defaultEnabled: true
+        },
+        {
+          id: "stock-kline",
+          label: "隐藏个股K线",
+          selector: ".quote-container, .chart-container-box",
+          defaultEnabled: true
+        },
+        {
           id: "no-image-mode",
           label: "无图模式",
           selector: "img",
