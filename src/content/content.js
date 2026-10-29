@@ -8,11 +8,11 @@
   const appliedStyles = new Map();
   const site = config.matchSiteByHostname(globalScope.location.hostname);
 
-  if (!site) {
-    return;
-  }
-
   async function getSiteEnabled() {
+    if (!site) {
+      return true;
+    }
+
     const storageKey = config.getSiteEnabledKey(site.id);
     const storedValue = await chrome.storage.sync.get(storageKey);
 
@@ -29,7 +29,7 @@
       return rule.defaultEnabled !== false;
     }
 
-    const storageKey = config.getStorageKey(site.id, rule.id);
+    const storageKey = config.getRuleStorageKey(site?.id, rule);
     const storedValue = await chrome.storage.sync.get(storageKey);
 
     if (typeof storedValue[storageKey] === "boolean") {
@@ -70,6 +70,7 @@
 
   async function applyRule(rule) {
     // 子开关决定“这一项是否允许生效”，总站点开关决定“当前网站是否整体暂停”。
+    // 全局规则不受站点总开关影响，因此在所有页面上都按自身开关生效。
     if (rule.showInPopup === false) {
       const enabled = await getRuleEnabled(rule);
       if (enabled) {
@@ -81,7 +82,7 @@
     }
 
     const [siteEnabled, ruleEnabled] = await Promise.all([getSiteEnabled(), getRuleEnabled(rule)]);
-    const enabled = siteEnabled && ruleEnabled;
+    const enabled = config.isGlobalRule(rule) ? ruleEnabled : siteEnabled && ruleEnabled;
 
     if (enabled) {
       ensureRuleStyle(rule);
@@ -92,7 +93,7 @@
   }
 
   async function applyAllRules() {
-    await Promise.all(site.rules.map(applyRule));
+    await Promise.all(config.getRulesForSite(site).map(applyRule));
   }
 
   chrome.storage.onChanged.addListener((changes, areaName) => {
@@ -100,15 +101,17 @@
       return;
     }
 
-    const siteEnabledKey = config.getSiteEnabledKey(site.id);
-    if (siteEnabledKey in changes) {
-      // 总开关变化时，整站规则都需要重新计算。
-      applyAllRules();
-      return;
+    if (site) {
+      const siteEnabledKey = config.getSiteEnabledKey(site.id);
+      if (siteEnabledKey in changes) {
+        // 总开关变化时，整站规则都需要重新计算。
+        applyAllRules();
+        return;
+      }
     }
 
-    site.rules.forEach((rule) => {
-      const storageKey = config.getStorageKey(site.id, rule.id);
+    config.getRulesForSite(site).forEach((rule) => {
+      const storageKey = config.getRuleStorageKey(site?.id, rule);
       if (!(storageKey in changes)) {
         return;
       }

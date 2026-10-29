@@ -56,12 +56,6 @@
           selector:
             'div[data-za-detail-view-path-module="RightSideBar"], .HotSearchCard, .Post-Row-Content-right, footer[role="contentinfo"]',
           defaultEnabled: true
-        },
-        {
-          id: "no-image-mode",
-          label: "无图模式",
-          selector: "img",
-          defaultEnabled: true
         }
       ]
     },
@@ -87,12 +81,6 @@
           label: "隐藏左侧边栏",
           className: "article-suspended-panel",
           defaultEnabled: true
-        },
-        {
-          id: "no-image-mode",
-          label: "无图模式",
-          selector: "img",
-          defaultEnabled: false
         }
       ]
     },
@@ -142,12 +130,6 @@
           label: "隐藏个股K线",
           selector: ".quote-container, .chart-container-box",
           defaultEnabled: true
-        },
-        {
-          id: "no-image-mode",
-          label: "无图模式",
-          selector: "img",
-          defaultEnabled: true
         }
       ]
     },
@@ -173,6 +155,16 @@
           defaultEnabled: true
         }
       ]
+    }
+  ];
+
+  // 全局规则对所有网站生效（包括未匹配任何预设站点的页面），且不受站点总开关影响。
+  const GLOBAL_RULES = [
+    {
+      id: "no-image-mode",
+      label: "无图模式",
+      selector: "img",
+      defaultEnabled: true
     }
   ];
 
@@ -220,8 +212,30 @@
     return `${selector} { display: none !important; }`;
   }
 
-  function getStorageKey(siteId, ruleId) {
-    return `site-rule:${siteId}:${ruleId}`;
+  function getRulesForSite(site) {
+    // 站点规则在前，全局规则在后，保证 popup 中的展示顺序稳定。
+    return site ? [...site.rules, ...GLOBAL_RULES] : [...GLOBAL_RULES];
+  }
+
+  function getStorageKey(scopeId, ruleId) {
+    return `site-rule:${scopeId}:${ruleId}`;
+  }
+
+  function getGlobalStorageKey(ruleId) {
+    return getStorageKey("global", ruleId);
+  }
+
+  function getRuleStorageKey(siteId, rule) {
+    // 全局规则用固定的 global 作用域存开关，跨站点共享同一份配置。
+    if (isGlobalRule(rule)) {
+      return getGlobalStorageKey(rule.id);
+    }
+
+    return getStorageKey(siteId, rule.id);
+  }
+
+  function isGlobalRule(rule) {
+    return GLOBAL_RULES.some((item) => item.id === rule.id);
   }
 
   function getSiteEnabledKey(siteId) {
@@ -230,11 +244,16 @@
   }
 
   globalScope.LowkeySiteConfig = {
+    GLOBAL_RULES,
     SITE_RULES,
     buildRuleStyle,
     buildRuleSelector,
+    getGlobalStorageKey,
+    getRuleStorageKey,
+    getRulesForSite,
     getSiteEnabledKey,
     getStorageKey,
+    isGlobalRule,
     matchSiteByHostname
   };
 })(globalThis);

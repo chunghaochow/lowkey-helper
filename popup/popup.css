@@ -105,6 +105,10 @@ body {
   gap: 12px;
 }
 
+#global-rule-list:not(:empty) {
+  margin-top: 12px;
+}
+
 .rule-item {
   display: flex;
   align-items: center;

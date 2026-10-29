@@ -11,6 +11,7 @@
   const unsupportedView = document.getElementById("unsupported-view");
   const siteToggleElement = document.getElementById("site-toggle");
   const ruleListElement = document.getElementById("rule-list");
+  const globalRuleListElement = document.getElementById("global-rule-list");
 
   async function getCurrentTab() {
     const [tab] = await chrome.tabs.query({
@@ -21,7 +22,7 @@
   }
 
   async function getStoredState(siteId, rule) {
-    const storageKey = config.getStorageKey(siteId, rule.id);
+    const storageKey = config.getRuleStorageKey(siteId, rule);
     const result = await chrome.storage.sync.get(storageKey);
 
     if (typeof result[storageKey] === "boolean") {
@@ -86,21 +87,47 @@
     return { input, row };
   }
 
+  async function renderRules({ siteId, rules, container }) {
+    const states = await Promise.all(rules.map((rule) => getStoredState(siteId, rule)));
+
+    rules.forEach((rule, index) => {
+      const isGlobal = config.isGlobalRule(rule);
+      const { row } = createRuleRow({
+        titleText: rule.label,
+        metaText: isGlobal
+          ? "所有网站通用"
+          : rule.className
+            ? `className: ${rule.className}`
+            : rule.selector,
+        checked: states[index],
+        ariaLabel: rule.label,
+        onChange: async (event) => {
+          const storageKey = config.getRuleStorageKey(siteId, rule);
+          await chrome.storage.sync.set({
+            [storageKey]: event.target.checked
+          });
+        }
+      });
+
+      container.appendChild(row);
+    });
+  }
+
   async function renderSupportedSite(site) {
     siteNameElement.textContent = site.label;
     supportedView.hidden = false;
     unsupportedView.hidden = true;
     siteToggleElement.innerHTML = "";
     ruleListElement.innerHTML = "";
-    const visibleRules = site.rules.filter((rule) => rule.showInPopup !== false);
-    if (visibleRules.length === 0) {
+    globalRuleListElement.innerHTML = "";
+
+    const siteRules = site.rules.filter((rule) => rule.showInPopup !== false);
+    const globalRules = config.GLOBAL_RULES.filter((rule) => rule.showInPopup !== false);
+    if (siteRules.length === 0 && globalRules.length === 0) {
       return;
     }
 
-    const [siteEnabled, states] = await Promise.all([
-      getSiteEnabled(site.id),
-      Promise.all(visibleRules.map((rule) => getStoredState(site.id, rule)))
-    ]);
+    const siteEnabled = await getSiteEnabled(site.id);
 
     // 总开关不覆盖子开关存储值，只控制当前网站规则是否整体生效。
     const { row: masterRow } = createRuleRow({
@@ -119,29 +146,27 @@
 
     siteToggleElement.appendChild(masterRow);
 
-    visibleRules.forEach((rule, index) => {
-      const { row } = createRuleRow({
-        titleText: rule.label,
-        metaText: rule.className ? `className: ${rule.className}` : rule.selector,
-        checked: states[index],
-        ariaLabel: rule.label,
-        onChange: async (event) => {
-          const storageKey = config.getStorageKey(site.id, rule.id);
-          await chrome.storage.sync.set({
-            [storageKey]: event.target.checked
-          });
-        }
-      });
-
-      ruleListElement.appendChild(row);
-    });
+    await Promise.all([
+      renderRules({ siteId: site.id, rules: siteRules, container: ruleListElement }),
+      renderRules({ siteId: site.id, rules: globalRules, container: globalRuleListElement })
+    ]);
   }
 
-  function renderUnsupportedSite(hostname) {
+  async function renderUnsupportedSite(hostname) {
     siteNameElement.textContent = "未匹配预设网站";
     siteHostElement.textContent = hostname || "无法识别当前页面";
     supportedView.hidden = true;
     unsupportedView.hidden = false;
+    siteToggleElement.innerHTML = "";
+    ruleListElement.innerHTML = "";
+    globalRuleListElement.innerHTML = "";
+
+    // 没有预设站点时，仍展示对所有网站生效的通用规则。
+    await renderRules({
+      siteId: null,
+      rules: config.GLOBAL_RULES.filter((rule) => rule.showInPopup !== false),
+      container: globalRuleListElement
+    });
   }
 
   async function init() {
@@ -161,7 +186,7 @@
     // popup 只展示当前标签页命中的那一个站点配置。
     const site = config.matchSiteByHostname(hostname);
     if (!site) {
-      renderUnsupportedSite(hostname);
+      await renderUnsupportedSite(hostname);
       return;
     }
 
