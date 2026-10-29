@@ -159,12 +159,14 @@
   ];
 
   // 全局规则对所有网站生效（包括未匹配任何预设站点的页面），且不受站点总开关影响。
+  // 全局规则默认使用 chrome.storage.local 持久化，避免同步存储的配额与跨设备覆盖问题。
   const GLOBAL_RULES = [
     {
       id: "no-image-mode",
       label: "无图模式",
       selector: "img",
-      defaultEnabled: true
+      storageArea: "local",
+      defaultEnabled: false
     }
   ];
 
@@ -222,16 +224,21 @@
   }
 
   function getGlobalStorageKey(ruleId) {
-    return getStorageKey("global", ruleId);
+    // 全局规则用独立命名空间，和站点规则的状态互不影响。
+    return `global-rule:${ruleId}`;
   }
 
   function getRuleStorageKey(siteId, rule) {
-    // 全局规则用固定的 global 作用域存开关，跨站点共享同一份配置。
     if (isGlobalRule(rule)) {
       return getGlobalStorageKey(rule.id);
     }
 
     return getStorageKey(siteId, rule.id);
+  }
+
+  function getRuleStorageArea(rule) {
+    // 默认沿用 sync，全局规则显式声明 local，单独持久化。
+    return rule.storageArea === "local" ? "local" : "sync";
   }
 
   function isGlobalRule(rule) {
@@ -249,6 +256,7 @@
     buildRuleStyle,
     buildRuleSelector,
     getGlobalStorageKey,
+    getRuleStorageArea,
     getRuleStorageKey,
     getRulesForSite,
     getSiteEnabledKey,

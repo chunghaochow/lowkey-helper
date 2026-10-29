@@ -22,8 +22,9 @@
   }
 
   async function getStoredState(siteId, rule) {
+    const storageArea = config.getRuleStorageArea(rule);
     const storageKey = config.getRuleStorageKey(siteId, rule);
-    const result = await chrome.storage.sync.get(storageKey);
+    const result = await chrome.storage[storageArea].get(storageKey);
 
     if (typeof result[storageKey] === "boolean") {
       return result[storageKey];
@@ -102,8 +103,9 @@
         checked: states[index],
         ariaLabel: rule.label,
         onChange: async (event) => {
+          const storageArea = config.getRuleStorageArea(rule);
           const storageKey = config.getRuleStorageKey(siteId, rule);
-          await chrome.storage.sync.set({
+          await chrome.storage[storageArea].set({
             [storageKey]: event.target.checked
           });
         }

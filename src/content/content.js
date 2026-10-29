@@ -29,8 +29,9 @@
       return rule.defaultEnabled !== false;
     }
 
+    const storageArea = config.getRuleStorageArea(rule);
     const storageKey = config.getRuleStorageKey(site?.id, rule);
-    const storedValue = await chrome.storage.sync.get(storageKey);
+    const storedValue = await chrome.storage[storageArea].get(storageKey);
 
     if (typeof storedValue[storageKey] === "boolean") {
       return storedValue[storageKey];
@@ -97,11 +98,7 @@
   }
 
   chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName !== "sync") {
-      return;
-    }
-
-    if (site) {
+    if (areaName === "sync" && site) {
       const siteEnabledKey = config.getSiteEnabledKey(site.id);
       if (siteEnabledKey in changes) {
         // 总开关变化时，整站规则都需要重新计算。
@@ -111,6 +108,10 @@
     }
 
     config.getRulesForSite(site).forEach((rule) => {
+      if (config.getRuleStorageArea(rule) !== areaName) {
+        return;
+      }
+
       const storageKey = config.getRuleStorageKey(site?.id, rule);
       if (!(storageKey in changes)) {
         return;
