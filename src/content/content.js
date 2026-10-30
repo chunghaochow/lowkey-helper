@@ -30,7 +30,10 @@
     }
 
     const storageArea = config.getRuleStorageArea(rule);
-    const storageKey = config.getRuleStorageKey(site?.id, rule);
+    const storageKey = config.getRuleStorageKey(rule, {
+      siteId: site?.id,
+      hostname: globalScope.location.hostname
+    });
     const storedValue = await chrome.storage[storageArea].get(storageKey);
 
     if (typeof storedValue[storageKey] === "boolean") {
@@ -112,7 +115,10 @@
         return;
       }
 
-      const storageKey = config.getRuleStorageKey(site?.id, rule);
+      const storageKey = config.getRuleStorageKey(rule, {
+        siteId: site?.id,
+        hostname: globalScope.location.hostname
+      });
       if (!(storageKey in changes)) {
         return;
       }

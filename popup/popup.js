@@ -21,9 +21,9 @@
     return tab || null;
   }
 
-  async function getStoredState(siteId, rule) {
+  async function getStoredState({ siteId, hostname, rule }) {
     const storageArea = config.getRuleStorageArea(rule);
-    const storageKey = config.getRuleStorageKey(siteId, rule);
+    const storageKey = config.getRuleStorageKey(rule, { siteId, hostname });
     const result = await chrome.storage[storageArea].get(storageKey);
 
     if (typeof result[storageKey] === "boolean") {
@@ -88,15 +88,17 @@
     return { input, row };
   }
 
-  async function renderRules({ siteId, rules, container }) {
-    const states = await Promise.all(rules.map((rule) => getStoredState(siteId, rule)));
+  async function renderRules({ siteId, hostname, rules, container }) {
+    const states = await Promise.all(
+      rules.map((rule) => getStoredState({ siteId, hostname, rule }))
+    );
 
     rules.forEach((rule, index) => {
       const isGlobal = config.isGlobalRule(rule);
       const { row } = createRuleRow({
         titleText: rule.label,
         metaText: isGlobal
-          ? "所有网站通用"
+          ? "仅对当前网站生效"
           : rule.className
             ? `className: ${rule.className}`
             : rule.selector,
@@ -104,7 +106,7 @@
         ariaLabel: rule.label,
         onChange: async (event) => {
           const storageArea = config.getRuleStorageArea(rule);
-          const storageKey = config.getRuleStorageKey(siteId, rule);
+          const storageKey = config.getRuleStorageKey(rule, { siteId, hostname });
           await chrome.storage[storageArea].set({
             [storageKey]: event.target.checked
           });
@@ -115,7 +117,7 @@
     });
   }
 
-  async function renderSupportedSite(site) {
+  async function renderSupportedSite(site, hostname) {
     siteNameElement.textContent = site.label;
     supportedView.hidden = false;
     unsupportedView.hidden = true;
@@ -149,8 +151,13 @@
     siteToggleElement.appendChild(masterRow);
 
     await Promise.all([
-      renderRules({ siteId: site.id, rules: siteRules, container: ruleListElement }),
-      renderRules({ siteId: site.id, rules: globalRules, container: globalRuleListElement })
+      renderRules({ siteId: site.id, hostname, rules: siteRules, container: ruleListElement }),
+      renderRules({
+        siteId: site.id,
+        hostname,
+        rules: globalRules,
+        container: globalRuleListElement
+      })
     ]);
   }
 
@@ -163,9 +170,10 @@
     ruleListElement.innerHTML = "";
     globalRuleListElement.innerHTML = "";
 
-    // 没有预设站点时，仍展示对所有网站生效的通用规则。
+    // 没有预设站点时，仍展示按当前网站单独保存的通用规则。
     await renderRules({
       siteId: null,
+      hostname,
       rules: config.GLOBAL_RULES.filter((rule) => rule.showInPopup !== false),
       container: globalRuleListElement
     });
@@ -192,7 +200,7 @@
       return;
     }
 
-    await renderSupportedSite(site);
+    await renderSupportedSite(site, hostname);
   }
 
   init();

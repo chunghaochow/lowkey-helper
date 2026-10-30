@@ -158,8 +158,8 @@
     }
   ];
 
-  // 全局规则对所有网站生效（包括未匹配任何预设站点的页面），且不受站点总开关影响。
-  // 全局规则默认使用 chrome.storage.local 持久化，避免同步存储的配额与跨设备覆盖问题。
+  // 通用规则对所有网站可用（包括未匹配任何预设站点的页面），且不受站点总开关影响。
+  // 开关状态按 hostname 单独保存在 chrome.storage.local，不同网站互不影响。
   const GLOBAL_RULES = [
     {
       id: "no-image-mode",
@@ -223,17 +223,17 @@
     return `site-rule:${scopeId}:${ruleId}`;
   }
 
-  function getGlobalStorageKey(ruleId) {
-    // 全局规则用独立命名空间，和站点规则的状态互不影响。
-    return `global-rule:${ruleId}`;
+  function getGlobalStorageKey(ruleId, hostname) {
+    // 通用规则按 hostname 单独存储，未收录的网站也能各自保存开关状态。
+    return `host-rule:${hostname || "unknown"}:${ruleId}`;
   }
 
-  function getRuleStorageKey(siteId, rule) {
+  function getRuleStorageKey(rule, context = {}) {
     if (isGlobalRule(rule)) {
-      return getGlobalStorageKey(rule.id);
+      return getGlobalStorageKey(rule.id, context.hostname);
     }
 
-    return getStorageKey(siteId, rule.id);
+    return getStorageKey(context.siteId, rule.id);
   }
 
   function getRuleStorageArea(rule) {
