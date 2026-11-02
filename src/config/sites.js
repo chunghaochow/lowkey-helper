@@ -164,7 +164,9 @@
     {
       id: "no-image-mode",
       label: "无图模式",
-      selector: "img",
+      // X 等站点会把图片渲染成 background-image 容器，只处理 img 会漏掉。
+      selector:
+        'img, picture, video, [style*="background-image"], [data-testid="tweetPhoto"]',
       storageArea: "local",
       defaultEnabled: false
     }
